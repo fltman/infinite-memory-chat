@@ -11,7 +11,7 @@ echo "========================================"
 # Create virtual environment if it doesn't exist
 if [ ! -d ".venv" ]; then
     echo "📦 Creating virtual environment..."
-    python3.13 -m venv .venv
+    python3.14 -m venv .venv
 fi
 
 # Activate virtual environment
@@ -78,4 +78,4 @@ echo "========================================"
 echo ""
 
 # Run the chat
-python3.13 infinite_memory_chat.py
+python3.14 infinite_memory_chat.py

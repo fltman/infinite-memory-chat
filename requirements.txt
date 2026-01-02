@@ -3,3 +3,5 @@ pymongo
 python-dotenv
 numpy
 pytest
+pytest-asyncio
+motor
