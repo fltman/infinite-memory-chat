@@ -55,6 +55,15 @@ class TestMongoDBBackend:
         client = Mock()
         embedding_response = Mock()
         embedding_response.data = [Mock(embedding=[0.1] * 1536)]  # Mock 1536-dim vector
+        
+        # Mock the model_dump() method to return a proper dictionary structure
+        mock_response_dict = {
+            "data": [{"embedding": [0.1] * 1536}],
+            "model": "text-embedding-3-small",
+            "usage": {"prompt_tokens": 10, "total_tokens": 10}
+        }
+        embedding_response.model_dump.return_value = mock_response_dict
+        
         client.embeddings.create.return_value = embedding_response
         return client
     

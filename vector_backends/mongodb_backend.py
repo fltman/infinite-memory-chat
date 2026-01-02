@@ -80,7 +80,7 @@ class MongoDBBackend(VectorBackend):
         if self.collection_name not in self.db.list_collection_names():
             self.db.create_collection(self.collection_name)
         
-        # Note: Vector search indexes need to be created manually in MongoDB Atlas UI
+        # Note: Vector search indexes may need to be created manually in MongoDB Atlas UI
         # or via the Atlas Admin API. For production, this would be automated.
         # For now, we'll document the required index structure.
         
