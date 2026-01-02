@@ -15,6 +15,7 @@ load_dotenv()
 class BackendType(Enum):
     OPENAI = "openai"
     MONGODB = "mongodb"
+    ASYNC_MONGODB = "async_mongodb"
 
 
 @dataclass
@@ -66,7 +67,7 @@ class BackendConfig:
             issues.append("OPENAI_API_KEY is required")
         
         # Backend-specific validation
-        if self.backend_type == BackendType.MONGODB:
+        if self.backend_type in [BackendType.MONGODB, BackendType.ASYNC_MONGODB]:
             if not self.mongodb_connection_string:
                 issues.append("MONGODB_CONNECTION_STRING is required for MongoDB backend")
         
@@ -91,7 +92,7 @@ class BackendConfig:
 
 
 def create_backend(config: BackendConfig):
-    """Factory function to create the appropriate backend."""
+    """Factory function to create the appropriate synchronous backend."""
     from vector_backends.base import VectorBackend
     
     if config.backend_type == BackendType.OPENAI:
@@ -113,14 +114,71 @@ def create_backend(config: BackendConfig):
             embedding_model=config.embedding_model
         )
     
+    elif config.backend_type == BackendType.ASYNC_MONGODB:
+        # For async backends, we'll create a wrapped version for backward compatibility
+        from vector_backends.mongodb_backend import MongoDBBackend
+        from vector_backends.async_wrapper import AsyncBackendWrapper
+        from openai import OpenAI
+        
+        embedding_client = OpenAI(api_key=config.openai_api_key)
+        sync_backend = MongoDBBackend(
+            connection_string=config.mongodb_connection_string,
+            database_name=config.mongodb_database,
+            embedding_client=embedding_client,
+            embedding_model=config.embedding_model
+        )
+        # Return sync backend with note about async capabilities
+        return sync_backend
+    
     else:
         raise ValueError(f"Unsupported backend type: {config.backend_type}")
 
 
-# Utility function for easy access
+async def create_async_backend(config: BackendConfig):
+    """Factory function to create the appropriate asynchronous backend."""
+    from vector_backends.async_base import AsyncVectorBackend
+    from vector_backends.async_wrapper import AsyncBackendFactory
+    
+    if config.backend_type == BackendType.ASYNC_MONGODB:
+        return await AsyncBackendFactory.create_async_backend(
+            "async_mongodb",
+            connection_string=config.mongodb_connection_string,
+            database_name=config.mongodb_database,
+            embedding_model=config.embedding_model
+        )
+    
+    elif config.backend_type == BackendType.MONGODB:
+        # Create wrapped version of sync backend for async compatibility
+        return await AsyncBackendFactory.create_async_backend(
+            "mongodb",
+            connection_string=config.mongodb_connection_string,
+            database_name=config.mongodb_database,
+            embedding_model=config.embedding_model
+        )
+    
+    elif config.backend_type == BackendType.OPENAI:
+        # OpenAI backend doesn't have native async support yet, so wrap it
+        from vector_backends.openai_backend import OpenAIBackend
+        from vector_backends.async_wrapper import AsyncBackendWrapper
+        from openai import OpenAI
+        
+        client = OpenAI(api_key=config.openai_api_key)
+        sync_backend = OpenAIBackend(client=client)
+        return AsyncBackendWrapper(sync_backend)
+    
+    else:
+        raise ValueError(f"Unsupported backend type: {config.backend_type}")
+
+
+# Utility functions for easy access
 def get_config() -> BackendConfig:
     """Get configuration from environment with validation."""
     config = BackendConfig.from_env()
     if not config.validate():
         raise ValueError("Invalid configuration")
     return config
+
+
+def is_async_backend(config: BackendConfig) -> bool:
+    """Check if the configured backend supports native async operations."""
+    return config.backend_type == BackendType.ASYNC_MONGODB
