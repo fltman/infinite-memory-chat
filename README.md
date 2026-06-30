@@ -1,5 +1,7 @@
 # Infinite Memory Chat
 
+[![Support me on Patreon](https://img.shields.io/badge/Patreon-Support%20my%20work-FF424D?style=flat&logo=patreon&logoColor=white)](https://www.patreon.com/AndersBjarby)
+
 A proof-of-concept chatbot with virtually unlimited conversation memory using OpenAI's Responses API and Vector Stores.
 
 ## The Problem
